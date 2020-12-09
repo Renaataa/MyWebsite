@@ -10,7 +10,7 @@ app.controller('Ctrl', ['$http', function($http){
         yearOfBirth: 2000
     }
 
-    $http.get('/get').then(
+    $http.get('/person').then(
         function(res){
             ctrl.person = res.data
         },
@@ -18,14 +18,14 @@ app.controller('Ctrl', ['$http', function($http){
     )
 
     ctrl.dataChanged = function(){
-        $http.get('/set?firstName=' + ctrl.person.firstName + '&lastName=' + ctrl.person.lastName + '&yearOfBirth=' + ctrl.person.yearOfBirth).then(
+        $http.put('/person', ctrl.person).then(
             function(res){},
             function(err){}
         )
     }
 
     ctrl.sendNewData = function(){
-        $http.get('/set?firstName=' + ctrl.newPerson.firstName + '&lastName=' + ctrl.newPerson.lastName + '&yearOfBirth=' + ctrl.newPerson.yearOfBirth).then(
+        $http.put('/person', ctrl.newPerson ).then(
             function(res){ctrl.person=res.data},
             function(err){}
         )
