@@ -5,49 +5,98 @@ var url = require('url')
 var httpServer = http.createServer()
 var fileServer = new static.Server('./public')
 
-var serveError = (res, code) => {
-    res.writeHead(code, {"contentType": 'text/plain; charset-utf-8'})
-    res.write('Error')
+
+var serveJson = function(res, obj, code=200) {
+    res.writeHead(code, {"contentType": 'aplication/json'})
+    res.write(JSON.stringify(obj))
     res.end()
 }
 
-var person ={
-    firstName: 'Renata',
-    lastName: 'Babenko',
-    yearOfBirth: 2001
+var serveError = function(res, code) {
+    serveJson(res, {error: 'Error occured'}, code)
 }
 
-httpServer.on('request', (req, res) => {
+var persons = [
+    {
+    firstName: 'Renata',
+    lastName: 'Babenko',
+    yearOfBirth: 2001,
+    amount: 100.0
+    },
+    {
+    firstName: 'Jan',
+    lastName: 'Kowalski',
+    yearOfBirth: 1970,
+    amount: 500.0
+    },
+    {
+    firstName: 'Balla',
+    lastName: 'Poarch',
+    yearOfBirth: 1989,
+    amount: 10.0
+    }
+]
+
+httpServer.on('request', function (req, res) {
     //extract payload
     var payload = ''
     req.on('data', function(data){
         payload += data
     }).on('end', function(){
         //asume that payload is in JSON format
-        var data = {}
+        var parsedPayload = {}
         try{
-            data = JSON.parse(payload)
+            parsedPayload = JSON.parse(payload)
         }catch(ex){}
         //log request
-        console.log(req.method, req.url, data)
+        console.log(req.method, req.url, parsedPayload)
         //parse query string
-        var parsed = url.parse(req.url, true)
-        switch(parsed.pathname){
+        var parsedUrl = url.parse(req.url, true)
+        var index = parseInt(parsedUrl.query.index)
+        var person = null
+        if( index >= 0 || index < persons.length) person = persons[index]
+        switch(parsedUrl.pathname){
             case '/person':
                 switch(req.method){
                     case 'GET':
-                        res.writeHead(200, {'Content-Type': 'application/json; charset=utf-8'})
-                        res.write(JSON.stringify(person))
-                        res.end()
+                        if(person)
+                            serveJson(res, person)
+                        else
+                            serveJson(res, persons)
                         break
                     case 'PUT':
-                        person.firstName = data.firstName 
-                        person.lastName = data.lastName 
-                        person.yearOfBirth = parseInt(data.yearOfBirth) 
-                        if(isNaN(person.yearOfBirth)) person.yearOfBirth = 2000
-                        res.writeHead(200, {'Content-Type': 'application/json; charset=utf-8'})
-                        res.write(JSON.stringify(person))
-                        res.end()
+                        Object.assign(person, parsedPayload)
+                        serveJson(res, person)
+                        break
+                    case 'POST':
+                        person = {}
+                        Object.assign(person, parsedPayload)
+                        persons.push(person)
+                        serveJson(res, person)
+                        break
+                    case 'DELETE':
+                        if(person){
+                            var deleted = {}
+                            Object.assign(deleted, person)
+                            persons.splice(index, 1)
+                            serveJson(res, deleted)
+                        }
+                        else{
+                            serveError(res, 400)
+                        }
+                        break
+                    default:
+                        serveError(res, 405)
+                }
+                break
+            case '/transfer':
+                switch(req.method){
+                    case 'POST':
+                        if(isNaN(parsedPayload.delta)) serveError(res, 400)
+                        else{
+                            person.amount += parsedPayload.delta
+                            serveJson(res, person)
+                        }
                         break
                     default:
                         serveError(res, 405)

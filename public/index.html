@@ -9,24 +9,41 @@
 
         <table border="1">
             <tr>
-                <td ng-bind="ctrl.person.firstName"></td>
-                <td ng-bind="ctrl.person.lastName"></td>
-                <td ng-bind="ctrl.person.yearOfBirth"></td>
+                <th>Imie</th>
+                <th>Nazwisko</th>
+                <th>Rok</th>
+                <th>Kwota</th>
+            </tr>
+            <tr ng-repeat="person in ctrl.persons" ng-click="ctrl.select($index)">
+                <td ng-bind="person.firstName"></td>
+                <td ng-bind="person.lastName"></td>
+                <td ng-bind="person.yearOfBirth"></td>
+                <td ng-bind="person.amount"></td>
             </tr>
         </table>
+        
+        <br/><br/>
 
-        <br/>
+        <div ng-if="ctrl.selected >= 0">
+            <input type="text" ng-model="ctrl.person.firstName"/>
+            <input type="text" ng-model="ctrl.person.lastName"/>
+            <input type="number" ng-model="ctrl.person.yearOfBirth"/>
+            <button ng-click="ctrl.updateData()">Zmien</button>
+            <button ng-click="ctrl.deleteData()">Usun</button>
 
-        <input type="text" ng-model="ctrl.person.firstName" ng-change="ctrl.dataChanged()"/>
-        <input type="text" ng-model="ctrl.person.lastName" ng-change="ctrl.dataChanged()"/>
-        <input type="number" ng-model="ctrl.person.yearOfBirth" ng-change="ctrl.dataChanged()"/>
+        </div>
 
-        <br/>
+        <br/><br/>
 
         <input type="text" ng-model="ctrl.newPerson.firstName"/>
         <input type="text" ng-model="ctrl.newPerson.lastName"/>
         <input type="number" ng-model="ctrl.newPerson.yearOfBirth"/>
-        <button ng-click="ctrl.sendNewData()">Send</button>
+        <button ng-click="ctrl.insertNewData()">Utworz</button>
+
+        <br/><br/>
+
+        <input type="number" ng-model="ctrl.transfer.delta"/>
+        <button ng-click="ctrl.doTransfer()">Wplac</button>
 
         <script src="node_modules/angular/angular.min.js"></script>
         <script src="js/app.js"></script>
