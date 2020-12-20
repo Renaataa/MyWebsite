@@ -37,6 +37,8 @@ var persons = [
     }
 ]
 
+var history = []
+
 httpServer.on('request', function (req, res) {
     //extract payload
     var payload = ''
@@ -91,9 +93,16 @@ httpServer.on('request', function (req, res) {
                 break
             case '/transfer':
                 switch(req.method){
+                    case 'GET':
+                        if(person)
+                            serveJson(res, history.filter(function(el) { return el.recipient == index }))
+                        else
+                            serveJson(res, history)
+                        break
                     case 'POST':
-                        if(isNaN(parsedPayload.delta)) serveError(res, 400)
+                        if(!person || isNaN(parsedPayload.delta)) serveError(res, 400)
                         else{
+                            history.push({date: new Date().getTime(), recipient: index, amount_before: person.amount, delta: parsedPayload.delta})
                             person.amount += parsedPayload.delta
                             serveJson(res, person)
                         }
