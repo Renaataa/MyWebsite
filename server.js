@@ -12,34 +12,12 @@ var serveJson = function(res, obj, code = 200) {
     res.end()
 }
 
-var serveError = function(res, code) {
-    serveJson(res, { error: 'Error occured' }, code)
+var serveError = function(res, code, message = 'Error occured') {
+    serveJson(res, { error: message }, code)
 }
 
 var personCollection = null
-/*var persons = [
-    {
-    firstName: 'Renata',
-    lastName: 'Babenko',
-    yearOfBirth: 2001,
-    amount: 100.0
-    },
-    {
-    firstName: 'Jan',
-    lastName: 'Kowalski',
-    yearOfBirth: 1970,
-    amount: 500.0
-    },
-    {
-    firstName: 'Balla',
-    lastName: 'Poarch',
-    yearOfBirth: 1989,
-    amount: 10.0
-    }
-]
-*/
-
-var history = []
+var historyCollection = null
 
 httpServer.on('request', function(req, res) {
     //extract payload
@@ -56,17 +34,17 @@ httpServer.on('request', function(req, res) {
         console.log(req.method, req.url, parsedPayload)
         //parse query string
         var parsedUrl = url.parse(req.url, true)
-        //var index = parseInt(parsedUrl.query.index)
+        // var index = parseInt(parsedUrl.query.index)
         var _idStr = parsedUrl.query._id
         var _id = null
         if(_idStr) {
             try {
                 _id = mongodb.ObjectID(_idStr)
             } catch(ex) {
-                serveError(res, 400)
+                serveError(res, 406, 'id broken')
                 return
             }
-        } 
+        }
         switch(parsedUrl.pathname) {
             case '/person':
                 switch(req.method) {
@@ -74,7 +52,7 @@ httpServer.on('request', function(req, res) {
                         if(_id)
                             personCollection.findOne({ _id: _id}, function(err, result) {
                                 if(err || !result)
-                                    serveError(res, 404)
+                                    serveError(res, 404, 'person not found')
                                 else
                                     serveJson(res, result)
                             })
@@ -87,85 +65,105 @@ httpServer.on('request', function(req, res) {
                     case 'POST':
                         personCollection.insertOne(parsedPayload, function(err, result) {
                             if(err || !result.ops || !result.ops[0])
-                                serveError(res, 400)
+                                serveError(res, 400, 'insert failed')
                             else
                                 serveJson(res, result.ops[0])
                         })
-                        break    
+                        break          
                     case 'PUT':
                         if(_id) {
                             delete parsedPayload._id
                             personCollection.findOneAndUpdate({ _id: _id },
-                                                              { $set: parsedPayload },
-                                                              { returnOriginal: false }, function(err, result) {
+                                                                { $set: parsedPayload },
+                                                                { returnOriginal: false }, function(err, result) {
                                 if(err || !result.value)
-                                    serveError(res, 404)
+                                    serveError(res, 404, 'object not found')
                                 else
                                     serveJson(res, result.value)
                             })
                         } else
-                            serveError(res, 400)
-                        break
+                            serveError(res, 404, 'no person id')
+                        break        
                     case 'DELETE':
                         if(_id) {
                             personCollection.findOneAndDelete({ _id: _id }, function(err, result) {
                                 if(err || !result.value)
-                                    serveError(res, 404)
+                                    serveError(res, 404, 'object not found')
                                 else
                                     serveJson(res, result.value)
                             })
                         } else {
-                            serveError(res, 400)
+                            serveError(res, 400, 'no person id')
                         }
                         break
                     default:
-                        serveError(res, 405)
-                }
-                break
-                case '/transfer':
-                    switch(req.method) {
-                        case 'GET':
-                            /*
-                            if(person)
-                                serveJson(res, history.filter(function(el) { return el.recipient == index }))
-                            else
-                            */
-                            serveJson(res, history)
-                            break
-                        case 'POST':
-                            /*
-                            if(!person || isNaN(parsedPayload.delta)) {
-                                serveError(res, 400)
-                            } else {
-                                history.push({ date: new Date().getTime(), recipient: index, amount_before: person.amount, delta: parsedPayload.delta })
-                                person.amount += parsedPayload.delta
-                                serveJson(res, person)
-                            }
-                            */
-                            serveJson(res, [])
-                            break
-                        default:
-                            serveError(res, 405)
+                        serveError(res, 405, 'method not implemented')
                     }
+                    break            
+                case '/transfer':
+                    var recipient = null
+                    try {
+                        recipient = mongodb.ObjectID(parsedUrl.query.recipient)
+                    } catch(ex) {
+                        serveError(res, 406, 'recipient id broken')
+                        return
+                    }
+                    switch(req.method) {                
+                        case 'GET':
+                            historyCollection.find({ recipient: recipient }).toArray(function(err, result) {
+                                if(err)
+                                    serveError(res, 404, 'no transfers')
+                                else
+                                    serveJson(res, result)
+                            })
+                            break                
+                        case 'POST':
+                            personCollection.findOne({ _id: recipient }, function(err, result) {
+                                if(err || !result)
+                                    serveError(res, 404, 'object not found')
+                                else {
+                                    var oldAmount = isNaN(result.amount) ? 0 : result.amount
+                                    var delta = isNaN(parsedPayload.delta) ? 0 : parsedPayload.delta
+                                    var newAmount = oldAmount + delta
+                                    personCollection.findOneAndUpdate({ _id: recipient }, { $set: { amount: newAmount } },
+                                        { returnOriginal: false }, function(err, result) {
+                                        if(err || !result.value)
+                                            serveError(res, 400, 'transfer failed')
+                                        else {
+                                            var updatedPerson = result.value
+                                            historyCollection.insertOne({
+                                                date: new Date().getTime(),
+                                                recipient: recipient,
+                                                amount_before: oldAmount,
+                                                delta: delta,
+                                                amount_after: newAmount
+                                            }, function(err, result) {
+                                                serveJson(res, updatedPerson)
+                                            })
+                                        }
+                                    })
+                                }
+                            })
+                            break                    
+                        default:
+                            serveError(res, 405, 'method not implemented')
+                    }
+                    break
                 default:
                     fileServer.serve(req, res)
         }
     })
-})    
+})                        
 
-    mongodb.MongoClient.connect('mongodb://localhost', { useUnifiedTopology: true }, function(err, connection) {
-        if(err) {
-            console.error('Connection to database failed')
-            process.exit(0)
-        }    
-        var db = connection.db('MyWebsite')
-        personCollection = db.collection('persons')
-    /*
-    personCollection.find({}).toArray(function(err, result){
-        persons = result
-    })
-    */
-   console.log('Database connected, starting http server')
-
-   httpServer.listen(8889)
+mongodb.MongoClient.connect('mongodb://localhost', { useUnifiedTopology: true }, function(err, connection) {
+    if(err) {
+        console.error('Connection to database failed')
+        process.exit(0)
+    }                          
+    var db = connection.db('MyWebsite')
+    personCollection = db.collection('persons')
+    historyCollection = db.collection('history')
+    console.log('Database connected, starting http server')
+                        
+    httpServer.listen(8889)
 })

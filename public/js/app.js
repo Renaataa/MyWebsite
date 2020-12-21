@@ -53,7 +53,7 @@ app.controller('Ctrl', [ '$http', function($http) {
         if(ctrl.selected < 0) {
             ctrl.history = []
         } else {
-            $http.get('/transfer?index=' + ctrl.selected).then(
+            $http.get('/transfer?recipient=' + ctrl.persons[ctrl.selected]._id).then(
                 function(res) {
                     ctrl.history = res.data
                 },
@@ -63,7 +63,7 @@ app.controller('Ctrl', [ '$http', function($http) {
     }
     
     ctrl.doTransfer = function() {
-        $http.post('/transfer?index=' + ctrl.selected, ctrl.transfer).then(
+        $http.post('/transfer?recipient=' + ctrl.persons[ctrl.selected]._id, ctrl.transfer).then(
             function(res) {
                 ctrl.persons[ctrl.selected] = res.data
                 refreshHistory()
