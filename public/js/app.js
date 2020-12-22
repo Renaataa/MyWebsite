@@ -1,103 +1,44 @@
-var app = angular.module('MyWebsite', [])
+var app = angular.module('MyWebsite', ['ngRoute', 'ngSanitize'])
 
-app.controller('Ctrl', [ '$http', function($http) {
-    console.log('Kontroler Ctrl startuje')
+// router menu
+app.constant('routes', [
+	{ route: '/', templateUrl: 'homeView.html', controller: 'HomeCtrl', controllerAs: 'ctrl', menu: '<i class="fa fa-lg fa-home"></i>'},
+	{ route: '/example', templateUrl: 'exampleView.html', controller: 'ExampleCtrl', controllerAs: 'ctrl', menu: 'Przyklad'},
+    { route: '/persons', templateUrl: 'personsView.html', controller: 'PersonsCtrl', controllerAs: 'ctrl', menu: 'Osoby'},
+    { route: '/transfers', templateUrl: 'transfersView.html', controller: 'TransfersCtrl', controllerAs: 'ctrl', menu: 'Przelewy'}
+])
+
+// router installation
+app.config(['$routeProvider', '$locationProvider', 'routes', function($routeProvider, $locationProvider, routes) {
+    $locationProvider.hashPrefix('')
+	for(var i in routes) {
+		$routeProvider.when(routes[i].route, routes[i])
+	}
+	$routeProvider.otherwise({ redirectTo: '/' })
+}])
+
+app.controller('ContainerCtrl', ['$http', '$scope', '$location', 'routes', function($http, $scope, $location, routes) {
     var ctrl = this
 
-    ctrl.selected = -1
-
-    ctrl.persons = []
-    ctrl.history = []
-
-    ctrl.newPerson = {
-        firstName: '',
-        lastName: '',
-        year: 2000
-    }
-
-    ctrl.transfer = {
-        delta: 10.00
-    }
-
-
-    var refreshPersons = function() {
-        $http.get('/person').then(
-            function(res) {
-                ctrl.persons = res.data
-            },
-            function(err) {}
-        )
-    }
-
-    var refreshPerson = function() {
-        $http.get('/person?_id=' + ctrl.persons[ctrl.selected]._id).then(
-            function(res) {
-                ctrl.person = res.data
-            },
-            function(err) {}
-        )
-    }
-
-    refreshPersons();
-
-    ctrl.insertNewData = function() {
-        $http.post('/person', ctrl.newPerson).then(
-            function(res) {
-                refreshPersons()
-            },
-            function(err) {}
-        )
-    }
-
-    var refreshHistory = function() {
-        if(ctrl.selected < 0) {
-            ctrl.history = []
-        } else {
-            $http.get('/transfer?recipient=' + ctrl.persons[ctrl.selected]._id).then(
-                function(res) {
-                    ctrl.history = res.data
-                },
-                function(err) {}    
-            )
+    var rebuildMenu = function() {
+        ctrl.menu = [];
+        for (var i in routes) {
+            ctrl.menu.push({route: routes[i].route, title: routes[i].menu});
         }
-    }
-    
-    ctrl.doTransfer = function() {
-        $http.post('/transfer?recipient=' + ctrl.persons[ctrl.selected]._id, ctrl.transfer).then(
-            function(res) {
-                ctrl.persons[ctrl.selected] = res.data
-                refreshHistory()
-            },
-            function(err) {}
-        )
+        $location.path('/');    
     }
 
-    ctrl.select = function(index) {
-        ctrl.selected = index
-        refreshPerson()
-        refreshHistory()
-    }
+    rebuildMenu()
 
-    ctrl.updateData = function() {
-        $http.put('/person?_id=' + ctrl.persons[ctrl.selected]._id, ctrl.person).then(
-            function(res) {
-                refreshPersons();
-            },
-            function(err) {}
-        )
-    }
+    // controlling collapsed/not collapsed status
+    ctrl.isCollapsed = true
+    $scope.$on('$routeChangeSuccess', function () {
+        ctrl.isCollapsed = true
+    })
 
-    ctrl.deleteData = function() {
-        $http.delete('/person?_id=' + ctrl.persons[ctrl.selected]._id).then(
-            function(res) {
-                refreshPersons();
-            },
-            function(err) {}
-        )
-    }
-
-    ctrl.formatDateTime = function(stamp) {
-        var date = new Date(stamp)
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+    // determining which menu position is active
+    ctrl.navClass = function(page) {
+        return page === $location.path() ? 'active' : ''
     }
 }])
+
