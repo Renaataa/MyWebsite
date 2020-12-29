@@ -2,7 +2,9 @@ var lib = module.exports = {
 
     serveJson: function(res, obj, code = 200) {
         res.writeHead(code, { "Content-Type": 'application/json' })
-        res.write(JSON.stringify(obj))
+        var output = JSON.stringify(obj)
+        res.write(output)
+        console.log(code, output)
         res.end()
     },
     
