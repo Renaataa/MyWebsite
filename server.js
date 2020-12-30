@@ -1,11 +1,8 @@
 var http = require('http')
 var url = require('url')
 var static = require('node-static')
-//var mongodb = require('mongodb')
-
-//var lib = require('./lib')
-//var collectionRest = require('./collectionRest')
-//const transfer = require('./transfer')
+var cookies = require('cookies')
+var uuid = require('uuid')
 
 var config = require('./config')
 var db = require('./db')
@@ -14,16 +11,28 @@ var rest = require('./rest')
 var httpServer = http.createServer()
 var fileServer = new static.Server(config.frontendDir)
 
-//var personCollection = null
-//var historyCollection = null
-//var groupCollection = null
+// sessions = {"1000cc4d-d988-4866-afeb-a4ad48d81319": {}, ...}
+var sessions = {}
 
 httpServer.on('request', function(req, res) {
+    
+    var appCookies = new cookies(req, res)
+    var session = appCookies.get('session')
+    var now = Date.now()
+    if(!session || !sessions[session]) {
+        session = uuid.v4()
+        sessions[session] = {from: req.connection.remoteAddress, created: now, touched: now}
+    } else sessions[session].touched = now
+    appCookies.set('session', session, {httpOnly: false})
+
+
     var env = {
         req: req,
         res: res,
         parsedUrl: {},
         parsedPayload: {},
+        session: session,
+        sessionDate: sessions[session]
     }   
     
     //extract payload
@@ -39,7 +48,8 @@ httpServer.on('request', function(req, res) {
             env.parsedUrl = url.parse(req.url, true)
         } catch(ex) {}
         //log request
-        console.log(req.method, env.parsedUrl.pathname, JSON.stringify(env.parsedUrl.query), JSON.stringify(env.parsedPayload))
+        console.log(env.session, JSON.stringify(env.sessionDate), req.method, env.parsedUrl.pathname, JSON.stringify(env.parsedUrl.query), JSON.stringify(env.parsedPayload))
+        
         if(!rest.handle(env)) {
             fileServer.serve(req, res)
         }
