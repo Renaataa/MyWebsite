@@ -7,6 +7,7 @@ var db = module.exports = {
     personCollection: null,
     historyCollection: null,
     groupCollection: null,
+    credentialsCollection: null,
 
     init: function(nextTick) {
         mongodb.MongoClient.connect(config.dbUrl, { useUnifiedTopology: true }, function(err, connection) {
@@ -18,6 +19,7 @@ var db = module.exports = {
             db.personCollection = conn.collection('persons')
             db.historyCollection = conn.collection('history')
             db.groupCollection = conn.collection('groups')
+            db.credentialsCollection = conn.collection('credentials')
             nextTick()
         })
     }
