@@ -15,7 +15,10 @@
 
         <div class="container" ng-controller="ContainerCtrl as ctrl">
 
-            <div uib-alert class="alert-animated" ng-class="ctrl._alert.type" close="ctrl.closeAlert()" dismiss-on-timeout="3000" ng-if="ctrl._alert.text" ng-bind="ctrl._alert.text"></div>
+            <div uib-alert class="alert-animated" ng-class="ctrl._alert.type" close="ctrl.closeAlert()" dismiss-on-timeout="3000" ng-if="ctrl._alert.text">
+                {{ctrl._alert.text}}
+            </div>
+
 
             <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
                 <div class="container-fluid">
