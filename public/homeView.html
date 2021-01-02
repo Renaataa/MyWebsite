@@ -1,14 +1,14 @@
 <h1>Strona glowna</h1>
 
 <div class="panel panel-default">
-    <div class="panel-heading" ng-bind="ctrl.loggedUser.login ? ctrl.loggedUser.firstName : 'niezalogowany'"></div>
+    <div class="panel-heading" ng-bind="ctrl.sessionData.login ? ctrl.sessionData.firstName : 'niezalogowany'"></div>
     <div class="panel-body">
-        <form class="form form-inline" ng-if="!ctrl.loggedUser.login">
+        <form class="form form-inline" ng-if="!ctrl.sessionData.login">
             <input class="form-control" type="text" placeholder="login" ng-model="ctrl.credentials.login"/>
             <input class="form-control" type="password" placeholder="haslo" ng-model="ctrl.credentials.password"/>
             <button class="btn btn-primary" ng-click="ctrl.doLogin()">Zaloguj</button>
         </form>
-        <form class="form form-inline" ng-if="ctrl.loggedUser.login">
+        <form class="form form-inline" ng-if="ctrl.sessionData.login">
             <button class="btn btn-primary" ng-click="ctrl.doLogout()">Wyloguj</button>
         </form>
     </div>

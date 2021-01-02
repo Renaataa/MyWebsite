@@ -1,8 +1,14 @@
 var app = angular.module('MyWebsite')
 
-app.controller('PersonsCtrl', [ '$http', function($http) {
+app.controller('PersonsCtrl', [ '$http', 'routes', 'common', function($http, routes, common) {
     console.log('Kontroler PersonsCtrl startuje')
     var ctrl = this
+
+    ctrl.visible = function(){
+        var route = routes.find(function(el) {return el.route == '/persons'})
+        return route && common.sessionData.role in route.roles
+    }
+    if(!ctrl.visible()) return
 
     ctrl.selected = -1
 
