@@ -5,9 +5,9 @@ app.controller('ExampleCtrl', ['common', function(common) {
     var ctrl = this
 
     ctrl.click = function(){
-        common.alert('alert-success', 'Klikles!')
-        /*common.confirm({title: 'Co wybierasz?', body: 'Wybierz uwarznie...'}, function(result){
+        //common.alert('alert-success', 'Klikles!')
+        common.confirm({title: 'Co wybierasz?', body: 'Wybierz uwarznie...'}, function(result){
             common.alert('alert-warning', 'Wybrales ' + result)
-        })*/
+        })
     }
 }])

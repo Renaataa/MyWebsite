@@ -18,13 +18,14 @@ app.config(['$routeProvider', '$locationProvider', 'routes', function($routeProv
 	$routeProvider.otherwise({ redirectTo: '/' })
 }])
 
+//service common for all other services/controllers
 app.service('common', ['$http', '$location', 'routes', '$uibModal', function($http, $location, routes, $uibModal){
     var common = this
 
     common.sessionData = {}
     common.menu = []
 
-    common.rebuildMenu = function() {
+    common.rebuildMenu = function(nextTick = null) {
         $http.get('/login').then(
             function(res){
                 common.sessionData.login = res.data.login
@@ -33,9 +34,10 @@ app.service('common', ['$http', '$location', 'routes', '$uibModal', function($ht
                 common.menu.length = 0
                 for (var i in routes) {
                     if(!routes[i].roles || common.sessionData.role in routes[i].roles)
-                        common.menu.push({route: routes[i].route, title: routes[i].menu});
+                        common.menu.push({route: routes[i].route, title: routes[i].menu})
                 }
-                $location.path('/');   
+                $location.path('/')   
+                if(nextTick) nextTick()
             },
             function(err) {}
         ) 
@@ -50,7 +52,6 @@ app.service('common', ['$http', '$location', 'routes', '$uibModal', function($ht
     }
 
     common.confirm = function(confirmOptions, nextTick) {
-
         var modalInstance = $uibModal.open({
             animation: true,
             ariaLabelledBy: 'modal-title-top',
@@ -59,7 +60,7 @@ app.service('common', ['$http', '$location', 'routes', '$uibModal', function($ht
             controller: 'ConfirmDialog',
             controllerAs: 'ctrl',
             resolve: {
-                confirmOptions: function () {
+                confirmOptions: function(){
                     return confirmOptions
                 }
             }
@@ -67,7 +68,7 @@ app.service('common', ['$http', '$location', 'routes', '$uibModal', function($ht
 
         modalInstance.result.then(
             function () { nextTick(true) },
-            function (ret) { nextTick(false) }
+            function (ret) { nextTick(false)}
         )
     }
 }])
@@ -82,13 +83,14 @@ app.controller('ConfirmDialog', [ '$uibModalInstance', 'confirmOptions', functio
 
 }])
 
-app.controller('ContainerCtrl', ['$scope', '$location', 'common', function($scope, $location, common) {
+app.controller('ContainerCtrl', ['$http', '$scope', '$location', 'common', '$uibModal', function($http, $scope, $location, common, $uibModal) {
     var ctrl = this
 
     ctrl._alert = common._alert
 
-    ctrl.menu = common.menu
     common.rebuildMenu()
+    ctrl.sessionData = common.sessionData
+    ctrl.menu = common.menu
 
     // controlling collapsed/not collapsed status
     ctrl.isCollapsed = true
@@ -103,6 +105,45 @@ app.controller('ContainerCtrl', ['$scope', '$location', 'common', function($scop
 
     ctrl.closeAlert = function(){
         ctrl._alert.text = ''
+    }
+
+    ctrl.login = function(){
+
+        if(ctrl.sessionData.login){
+            common.confirm({title: 'Wylogowanie', body: 'Czy jestes pewien?'}, function(result){
+                if(result){
+                    $http.delete('/login').then(
+                        function(res) {
+                            common.rebuildMenu()
+                            common.alert('alert-warning', 'Zostales wylogowany')
+                        },
+                        function(err) {}
+                    )
+                }
+            })
+        }else{
+            var modalInstance = $uibModal.open({
+                animation: true,
+                ariaLabelledBy: 'modal-title-top',
+                ariaDescribedBy: 'modal-body-top',
+                templateUrl: 'loginDialog.html',
+                controller: 'LoginCtrl',
+                controllerAs: 'ctrl'
+            })
+    
+            modalInstance.result.then(
+                function () { 
+                    common.rebuildMenu(function(){
+                        common.alert('alert-warning', 'Witaj na pokladzie, ' + ctrl.sessionData.firstName)
+                    })
+                },
+                function (ret) {}
+            )
+        }
+    }
+
+    ctrl.loginIcon = function() {
+        return common.sessionData.login ? common.sessionData.firstName + '&nbsp;<span class="fa fa-lg fa-sign-out"></span>' : '<span class="fa fa-lg fa-sign-in"></span>'
     }
 }])
 
