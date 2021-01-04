@@ -120,7 +120,7 @@ app.controller('ContainerCtrl', ['$http', '$scope', '$location', 'common', funct
 
     ctrl.login = function(){
 
-        if(ctrl.sessionData.login){
+        if(common.sessionData.login){
             //logout
             common.confirm({title: 'Wylogowanie', body: 'Czy jestes pewien?'}, function(result){
                 if(result){
@@ -139,8 +139,8 @@ app.controller('ContainerCtrl', ['$http', '$scope', '$location', 'common', funct
             common.dialog('loginDialog.html', 'LoginDialog', {defaultCredentials: ctrl.defaultCredentials}, function(result){
                 if(result){
                     common.rebuildMenu(function(){
-                        common.defaultCredentials.login = common.sessionData.login
-                        common.defaultCredentials.password  = common.sessionData.password 
+                        ctrl.defaultCredentials.login = common.sessionData.login
+                        ctrl.defaultCredentials.password  = common.sessionData.password 
                         common.alert('alert-success', 'Witaj na pokladzie, ' + common.sessionData.firstName)
                     })
                 }
