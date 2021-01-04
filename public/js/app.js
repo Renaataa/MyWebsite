@@ -51,17 +51,18 @@ app.service('common', ['$http', '$location', 'routes', '$uibModal', function($ht
         console.log(type, ':', text)
     }
 
-    common.confirm = function(confirmOptions, nextTick) {
+    common.dialog = function(templateUrl, controllerName, options, nextTick) {
+        
         var modalInstance = $uibModal.open({
             animation: true,
             ariaLabelledBy: 'modal-title-top',
             ariaDescribedBy: 'modal-body-top',
-            templateUrl: 'confirmDialog.html',
-            controller: 'ConfirmDialog',
+            templateUrl: templateUrl,
+            controller: controllerName,
             controllerAs: 'ctrl',
             resolve: {
-                confirmOptions: function(){
-                    return confirmOptions
+                options  : function(){
+                    return options
                 }
             }
         })
@@ -71,26 +72,32 @@ app.service('common', ['$http', '$location', 'routes', '$uibModal', function($ht
             function (ret) { nextTick(false)}
         )
     }
+
+    // confirmation dialog function
+    common.confirm = function(options, nextTick) {
+        common.dialog('confirmDialog.html', 'ConfirmDialog', options, nextTick)
+    }
+
 }])
 
 // confirmation dialog controller
-app.controller('ConfirmDialog', [ '$uibModalInstance', 'confirmOptions', function($uibModalInstance, confirmOptions) {
+app.controller('ConfirmDialog', [ '$uibModalInstance', 'options', function($uibModalInstance, options) {
     var ctrl = this
-    ctrl.opt = confirmOptions
+    ctrl.options = options
 
     ctrl.ok = function () { $uibModalInstance.close() }
     ctrl.cancel = function () { $uibModalInstance.dismiss('cancel') }
 
 }])
 
-app.controller('ContainerCtrl', ['$http', '$scope', '$location', 'common', '$uibModal', function($http, $scope, $location, common, $uibModal) {
+app.controller('ContainerCtrl', ['$http', '$scope', '$location', 'common', function($http, $scope, $location, common) {
     var ctrl = this
 
     ctrl._alert = common._alert
 
-    common.rebuildMenu()
-    ctrl.sessionData = common.sessionData
+    ctrl.defaultCredentials = {login: '', password: ''}
     ctrl.menu = common.menu
+    common.rebuildMenu()
 
     // controlling collapsed/not collapsed status
     ctrl.isCollapsed = true
@@ -100,50 +107,46 @@ app.controller('ContainerCtrl', ['$http', '$scope', '$location', 'common', '$uib
 
     // determining which menu position is active
     ctrl.navClass = function(page) {
-        return page === $location.path() ? 'active' : ''
+        return page == $location.path() ? 'active' : ''
     }
 
     ctrl.closeAlert = function(){
         ctrl._alert.text = ''
     }
 
+    ctrl.loginIcon = function() {
+        return common.sessionData.login ? common.sessionData.firstName + '&nbsp;<span class="fa fa-lg fa-sign-out"></span>' : '<span class="fa fa-lg fa-sign-in"></span>'
+    }
+
     ctrl.login = function(){
 
         if(ctrl.sessionData.login){
+            //logout
             common.confirm({title: 'Wylogowanie', body: 'Czy jestes pewien?'}, function(result){
                 if(result){
                     $http.delete('/login').then(
                         function(res) {
-                            common.rebuildMenu()
-                            common.alert('alert-warning', 'Zostales wylogowany')
+                            common.rebuildMenu(function(){
+                                common.alert('alert-warning', 'Zostales wylogowany')
+                            })
                         },
                         function(err) {}
                     )
                 }
             })
         }else{
-            var modalInstance = $uibModal.open({
-                animation: true,
-                ariaLabelledBy: 'modal-title-top',
-                ariaDescribedBy: 'modal-body-top',
-                templateUrl: 'loginDialog.html',
-                controller: 'LoginCtrl',
-                controllerAs: 'ctrl'
-            })
-    
-            modalInstance.result.then(
-                function () { 
+            //login
+            common.dialog('loginDialog.html', 'LoginDialog', {defaultCredentials: ctrl.defaultCredentials}, function(result){
+                if(result){
                     common.rebuildMenu(function(){
-                        common.alert('alert-warning', 'Witaj na pokladzie, ' + ctrl.sessionData.firstName)
+                        common.defaultCredentials.login = common.sessionData.login
+                        common.defaultCredentials.password  = common.sessionData.password 
+                        common.alert('alert-success', 'Witaj na pokladzie, ' + common.sessionData.firstName)
                     })
-                },
-                function (ret) {}
-            )
+                }
+            })
+            
         }
-    }
-
-    ctrl.loginIcon = function() {
-        return common.sessionData.login ? common.sessionData.firstName + '&nbsp;<span class="fa fa-lg fa-sign-out"></span>' : '<span class="fa fa-lg fa-sign-in"></span>'
     }
 }])
 
