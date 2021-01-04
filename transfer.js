@@ -14,8 +14,8 @@ module.exports = {
             return
         }
         switch(env.req.method) {                
-            case 'GET':
-                db.historyCollection.find({ recipient: recipient }).toArray(function(err, result) {
+            case 'GET': 
+                db.historyCollection.find({ recipient: env.sessionDate._id }).toArray(function(err, result) {
                     if(err)
                         lib.serveError(env.res, 404, 'no transfers')
                     else

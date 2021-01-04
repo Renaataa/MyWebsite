@@ -1,37 +1,17 @@
-<div class="row">
-    <div class="col col-sm-8">
-        <table class="table table-stripped table-hover">
-            <tr ng-click="ctrl.selected = -1">
-                <th>&nbsp;</th>
-                <th>Imię</th>
-                <th>Nazwisko</th>
-                <th>Rok</th>
-                <th>Kwota</th>
-            </tr>
-            <tr ng-repeat="person in ctrl.persons" ng-click="ctrl.select($index)" ng-class="{ 'rowSelected': ctrl.selected == $index }">
-                <td ng-bind="$index == ctrl.selected ? '»' : ''"></td>
-                <td ng-bind="person.firstName"></td>
-                <td ng-bind="person.lastName"></td>
-                <td ng-bind="person.yearOfBirth"></td>
-                <td ng-bind="person.amount"></td>
-            </tr>
-        </table>
-    </div>
-    <div class="col col-sm-4">
-        <table class="table table-stripped">
-            <tr">
-                <th>Data</th>
-                <th>Kwota przed</th>
-                <th>Przelew</th>
-            </tr>
-            <tr ng-repeat="transfer in ctrl.history">
-                <td ng-bind="ctrl.formatDateTime(transfer.date)"></td>
-                <td ng-bind="transfer.amount_before"></td>
-                <td ng-bind="transfer.delta"></td>
-            </tr>
-        </table>
-    </div>
-</div>
+<table class="table table-stripped">
+    <tr">
+        <th>Data</th>
+        <th>Kwota przed</th>
+        <th>Przelew</th>
+        <th>Kwota po</th>
+    </tr>
+    <tr ng-repeat="transfer in ctrl.history">
+        <td ng-bind="ctrl.formatDateTime(transfer.date)"></td>
+        <td ng-bind="transfer.amount_before"></td>
+        <td ng-bind="transfer.delta"></td>
+        <td ng-bind="transfer.amount_after"></td>
+    </tr>
+</table>
 
 <br/><br/>
 
@@ -39,8 +19,11 @@
     <div class="panel-heading">Przelew</div>
     <div class="panel-body">
         <form class="form form-inline">
+            <select class="form-control">
+
+            </select>
             <input class="form-control" type="number" ng-model="ctrl.transfer.delta"/>
-            <button class="btn btn-default" ng-click="ctrl.doTransfer()">Przelej</button>
+            <button class="btn btn-default" ng-click="ctrl.doTransfer()" ng-disabled="ctrl.selected < 0">Przelej</button>
         </form>
     </div>
 </div>

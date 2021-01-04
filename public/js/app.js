@@ -3,10 +3,10 @@ var app = angular.module('MyWebsite', ['ngRoute', 'ngSanitize', 'ngAnimate', 'ui
 // router menu
 app.constant('routes', [
 	{ route: '/', templateUrl: 'homeView.html', controller: 'HomeCtrl', controllerAs: 'ctrl', menu: '<i class="fa fa-lg fa-home"></i>'},
-	{ route: '/example', templateUrl: 'exampleView.html', controller: 'ExampleCtrl', controllerAs: 'ctrl', menu: 'Przyklad'},
-    { route: '/persons', templateUrl: 'personsView.html', controller: 'PersonsCtrl', controllerAs: 'ctrl', menu: 'Osoby', roles: [1, 2]},
-    { route: '/transfers', templateUrl: 'transfersView.html', controller: 'TransfersCtrl', controllerAs: 'ctrl', menu: 'Przelewy'},
-    { route: '/groups', templateUrl: 'groupsView.html', controller: 'GroupsCtrl', controllerAs: 'ctrl', menu: 'Grupy'}
+	{ route: '/example', templateUrl: 'exampleView.html', controller: 'ExampleCtrl', controllerAs: 'ctrl', menu: 'Przyklad', roles: [999]},
+    { route: '/persons', templateUrl: 'personsView.html', controller: 'PersonsCtrl', controllerAs: 'ctrl', menu: 'Osoby', roles: [1]},
+    { route: '/transfers', templateUrl: 'transfersView.html', controller: 'TransfersCtrl', controllerAs: 'ctrl', menu: 'Przelewy', roles: [2]},
+    { route: '/groups', templateUrl: 'groupsView.html', controller: 'GroupsCtrl', controllerAs: 'ctrl', menu: 'Grupy', roles: [999]}
 ])
 
 // router installation
@@ -33,7 +33,7 @@ app.service('common', ['$http', '$location', 'routes', '$uibModal', function($ht
                 common.sessionData.role = res.data.role
                 common.menu.length = 0
                 for (var i in routes) {
-                    if(!routes[i].roles || common.sessionData.role in routes[i].roles)
+                    if(!routes[i].roles || routes[i].roles.includes(common.sessionData.role))
                         common.menu.push({route: routes[i].route, title: routes[i].menu})
                 }
                 $location.path('/')   
@@ -78,6 +78,10 @@ app.service('common', ['$http', '$location', 'routes', '$uibModal', function($ht
         common.dialog('confirmDialog.html', 'ConfirmDialog', options, nextTick)
     }
 
+    common.formatDateTime = function(stamp) {
+        var date = new Date(stamp)
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+    }
 }])
 
 // confirmation dialog controller

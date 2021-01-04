@@ -6,7 +6,7 @@ app.controller('PersonsCtrl', [ '$http', 'routes', 'common', function($http, rou
 
     ctrl.visible = function(){
         var route = routes.find(function(el) {return el.route == '/persons'})
-        return route && common.sessionData.role in route.roles
+        return route && route.roles.includes(common.sessionData.role)
     }
     if(!ctrl.visible()) return
 
