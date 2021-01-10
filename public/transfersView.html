@@ -7,7 +7,7 @@
     </tr>
     <tr ng-repeat="transfer in ctrl.history">
         <td ng-bind="ctrl.formatDateTime(transfer.date)"></td>
-        <td ng-bind="transfer.amount_before"></td>
+        <td ng-bind="transfer.amount_after - transfer.delta"></td>
         <td ng-bind="transfer.delta"></td>
         <td ng-bind="transfer.amount_after"></td>
     </tr>
@@ -19,11 +19,10 @@
     <div class="panel-heading">Przelew</div>
     <div class="panel-body">
         <form class="form form-inline">
-            <select class="form-control">
-
+            <select class="form-control" ng-model="ctrl.recipient" ng-options="option.firstName+' '+option.lastName for option in ctrl.recipients track by option._id">
             </select>
             <input class="form-control" type="number" ng-model="ctrl.transfer.delta"/>
-            <button class="btn btn-default" ng-click="ctrl.doTransfer()" ng-disabled="ctrl.selected < 0">Przelej</button>
+            <button class="btn btn-default" ng-click="ctrl.doTransfer()" ng-disabled="!ctrl.recipient">Przelej</button>
         </form>
     </div>
 </div>

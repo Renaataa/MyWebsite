@@ -9,6 +9,9 @@ app.controller('TransfersCtrl', [ '$http', 'common', function($http, common) {
     //ctrl.selected = -1 
     ctrl.history = []
 
+    ctrl.recipients = []
+    ctrl.recipient = null
+
     ctrl.transfer = {
         delta: 10.00
     }
@@ -29,12 +32,22 @@ app.controller('TransfersCtrl', [ '$http', 'common', function($http, common) {
     refreshHistory()
 
     ctrl.doTransfer = function() {
-        $http.post('/transfer?recipient=' + ctrl.persons[ctrl.selected]._id, ctrl.transfer).then(
+        $http.post('/transfer?recipient=' + ctrl.recipient._id, ctrl.transfer).then(
             function(res) {
-                ctrl.persons[ctrl.selected] = res.data
                 refreshHistory()
             },
             function(err) {}
         )
     }
+
+    $http.get('/personList').then(
+        function(res){
+            ctrl.recipients = res.data
+            ctrl.recipient = ctrl.recipients[0] 
+        },
+        function(err){
+            ctrl.recipients = []
+            ctrl.recipient = null
+        }
+    )
 }])

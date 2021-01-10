@@ -20,8 +20,7 @@ module.exports = {
                 break
             case '/personList':
                 if(env.sessionDate.role == 2 && env.req.method == 'GET'){ 
-                    // TO DO
-                    // transfer.personList(env)
+                    transfer.personList(env)
                 } else {
                     lib.serveError(env.res, 403, 'permission denied')
                 }
