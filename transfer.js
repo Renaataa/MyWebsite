@@ -15,10 +15,39 @@ module.exports = {
         }
         switch(env.req.method) {                
             case 'GET': 
-                db.historyCollection.find({ $or: [
-                        { sender: env.sessionDate._id, delta: {$lt: 0} },
-                        { recipient: env.sessionDate._id, delta: {$gt: 0} }
-                    ]}).toArray(function(err, result) {
+                db.historyCollection.aggregate([
+                    {
+                        $match:{
+                            $or:[
+                                { sender: env.sessionDate._id, delta: {$lt: 0} },
+                                { recipient: env.sessionDate._id, delta: {$gt: 0} }
+                            ]
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'persons',
+                            localField: 'sender',
+                            foreignField: '_id',
+                            as: 'senderDate'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'persons',
+                            localField: 'recipient',
+                            foreignField: '_id',
+                            as: 'recipientDate'
+                        }
+                    },
+                    {$unwind: '$senderDate'},
+                    {$unwind: '$recipientDate'},
+                    {$addFields: {senderFirstName: '$senderDate.firstName'}},
+                    {$addFields: {senderLastName: '$senderDate.lastName'}},
+                    {$addFields: {recipientFirstName: '$recipientDate.firstName'}},
+                    {$addFields: {recipientLastName: '$recipientDate.lastName'}},
+                    {$project: {senderDate: false, recipientDate: false}}
+                ]).toArray(function(err, result) {
                     if(err)
                         lib.serveError(env.res, 404, 'no transfers')
                     else
@@ -26,58 +55,63 @@ module.exports = {
                 })
                 break                
             case 'POST':
-                db.personCollection.findOne({ _id: recipient }, function(err, recipient_data) {
-                    if(err || !recipient_data)
-                        lib.serveError(env.res, 404, 'object not found')
-                    else {
-                        var delta = isNaN(env.parsedPayload.delta) ? 0 : env.parsedPayload.delta
-                        if(delta <= 0) {
-                            lib.serveError(env.res, 403, 'transfer amount should be positive')
-                        }
-                        db.personCollection.findOne({ _id: env.sessionDate._id }, function(err, sender_data) {
-                            if(err) {
-                                lib.serveError(env.res, 403, 'sender account not accessible')
-                            } else {
-                                if(delta > sender_data.amount) {
-                                    lib.serveError(env.res, 403, 'not enough money to transfer')
-                                } else {
-                                    var newSenderAmount = sender_data.amount - delta
-                                    db.personCollection.findOneAndUpdate({ _id: env.sessionDate._id }, { $set: { amount: newSenderAmount } },
-                                        { returnOriginal: false }, function(err, result) {
-                                        if(err || !result.value)
-                                            lib.serveError(env.res, 400, 'transfer failed')
-                                        else {
-                                            var updatedSender = result.value
-                                            db.personCollection.findOneAndUpdate({ _id: recipient }, { $inc: { amount: delta } },
-                                                { returnOriginal: false }, function(err, result) {
-                                                var updatedRecipient = result.value
-
-                                                var now = new Date().getTime()
-
-                                                db.historyCollection.insertOne({
-                                                    date: now,
-                                                    sender: updatedSender._id,
-                                                    recipient: updatedRecipient._id,
-                                                    delta: delta,
-                                                    amount_after: updatedRecipient.amount
-                                                })
-
-                                                db.historyCollection.insertOne({
-                                                    date: now,
-                                                    sender: updatedSender._id,
-                                                    recipient: updatedRecipient._id,
-                                                    delta: -delta,
-                                                    amount_after: updatedSender.amount
-                                                })
-
-                                                lib.serveJson(env.res, updatedSender)
-                                            })
-                                        }
-                                    })
-                                }
-                            }
-                        })
+                // id konta nadawcy: env.sessionDate._id
+                // id konta odbiorcy: recipient
+                // kwota przelewu: env.parsedPayload.delta
+                db.personCollection.findOne({ _id: env.sessionDate._id }, function(err, senderData) {
+                    if(err || !senderData) {
+                        lib.serveError(env.res, 404, 'no sender')
+                        return
                     }
+                    var delta = isNaN(env.parsedPayload.delta) ? 0 : env.parsedPayload.delta
+                    if(delta <= 0) {
+                        lib.serveError(env.res, 400, 'delta should be positive')
+                        return
+                    }
+                    if(senderData.amount < delta) {
+                        lib.serveError(env.res, 400, 'not enough money')
+                        return
+                    }
+
+                    senderData.amount -= delta
+
+                    db.personCollection.findOneAndUpdate({ _id: recipient }, { $inc: { amount: delta } },
+                        { returnOriginal: false }, function(err, result) {
+                        if(err || !result.value) {
+                            lib.serveError(env.res, 400, 'no recipient')
+                            return
+                        }
+                        var recipientData = result.value
+
+                        db.personCollection.findOneAndUpdate({ _id: senderData._id }, { $set: { amount: senderData.amount } })
+
+                        var now = new Date().getTime()
+                        db.historyCollection.insertOne({
+                            date: now,
+                            sender: senderData._id,
+                            recipient: recipient,
+                            delta: -delta,
+                            amount_after: senderData.amount
+                        })
+                        db.historyCollection.insertOne({
+                            date: now,
+                            sender: senderData._id,
+                            recipient: recipient,
+                            delta: delta,
+                            amount_after: recipientData.amount
+                        })
+
+                        lib.serveJson(env.res, senderData)
+                    })
+                })
+                break
+            case 'DELETE':
+                db.personCollection.findOne({ _id: env.sessionDate._id }, function(err, senderData) {
+                    if(err || !senderData) {
+                        lib.serveError(env.res, 404, 'no sender')
+                        return
+                    }
+                    lib.serveJson(env.res, { amount: senderData.amount })
                 })
                 break
             default:

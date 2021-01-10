@@ -16,17 +16,19 @@ app.controller('TransfersCtrl', [ '$http', 'common', function($http, common) {
         delta: 10.00
     }
 
+    ctrl.amount = 0
+
     var refreshHistory = function() {
-        if(ctrl.selected < 0) {
-            ctrl.history = []
-        } else {
-            $http.get('/transfer').then(
-                function(res) {
-                    ctrl.history = res.data
-                },
-                function(err) {}    
-            )
-        }
+        $http.get('/transfer').then(
+            function(res) {
+                ctrl.history = res.data
+                $http.delete('/transfer').then(
+                    function(res) { ctrl.amount = res.data.amount },
+                    function(err) {}
+                )
+            },
+            function(err) {}    
+        )
     }
     
     refreshHistory()
